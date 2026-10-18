@@ -26,7 +26,7 @@ flowchart LR
 ```
 
 | Pasta | O que tem |
-|---|---|
+| --- | --- |
 | `pipeline/` | Leitura dos ZIPs do INEP, transformação para formato longo, exportação dos JSONs, relatório de qualidade e testes |
 | `site/` | O site: `index.html`, `css/`, `js/` (módulos ES, sem build) e `data/` (JSONs gerados) |
 | `tracking/` | Contrato de eventos (JSON Schema), gerador da documentação e testes do contrato |
@@ -54,7 +54,7 @@ Detalhes em [docs/inspecao_dados.md](docs/inspecao_dados.md). Os principais:
 O plano de medição é **código**: [`tracking/schema/events.schema.json`](tracking/schema/events.schema.json) é a fonte da verdade, e a documentação ([`tracking/docs/plano_de_medicao.md`](tracking/docs/plano_de_medicao.md)) é gerada a partir dele.
 
 | Evento | Tipo | Quando |
-|---|---|---|
+| --- | --- | --- |
 | `search` | recomendado GA4 | busca confirmada (inclusive sem resultado) |
 | `select_content` | recomendado GA4 | escolha de um município |
 | `view_chart` | personalizado | gráfico ≥ 50% visível, 1x por gráfico e município |
@@ -89,7 +89,7 @@ pip install -r requirements.txt
 Os JSONs prontos já estão em `site/data/`, então **para ver o site não é preciso baixar nada**. Para regenerar os dados, coloque os ZIPs do INEP (sem extrair) nestas pastas. Os nomes dos arquivos podem variar, porque o pipeline lê todo `*.zip` de cada pasta.
 
 | Pasta | O que baixar | Onde |
-|---|---|---|
+| --- | --- | --- |
 | `data/raw/rendimento/municipios/` | "Municípios", de 2007 a 2025 (19 ZIPs) | [Taxas de Rendimento Escolar](https://www.gov.br/inep/pt-br/acesso-a-informacao/dados-abertos/indicadores-educacionais/taxas-de-rendimento-escolar) (uma aba por ano) |
 | `data/raw/rendimento/brasil_uf/` | "Brasil, Regiões e UFs", de 2007 a 2025 (19 ZIPs) | mesma página |
 | `data/raw/ideb/` | os 5 ZIPs abaixo | [Ideb – Resultados](https://www.gov.br/inep/pt-br/areas-de-atuacao/pesquisas-estatisticas-e-indicadores/ideb/resultados) |
@@ -125,6 +125,7 @@ python -m pytest
 ```
 
 São 82 testes:
+
 - **regras de leitura:** com rótulos reais das planilhas do INEP;
 - **contrato dos JSONs:** cerca de 5.570 municípios, códigos de 7 dígitos, sem duplicatas, taxas entre 0 e 100, somas ≈ 100, IDEB coerente;
 - **contrato de eventos:** limites do GA4, inconsistências rejeitadas e documentação atualizada.
