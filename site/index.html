@@ -11,13 +11,17 @@
   <link rel="preload" href="data/municipios.json" as="fetch" crossorigin>
   <link rel="stylesheet" href="css/style.css">
 
+  <!-- dataLayer criado antes de tudo: eventos de track() e, depois, o GTM usam o mesmo array -->
+  <script>window.dataLayer = window.dataLayer || [];</script>
   <!-- ============================================================
-       GTM: o snippet do Google Tag Manager entra AQUI (Etapa futura),
-       logo após o dataLayer e o Consent Mode padrão, o mais alto possível no <head>.
+       GTM: o snippet do Google Tag Manager entra AQUI (fase GTM/GA4),
+       depois do dataLayer e do Consent Mode v2 padrão (4 sinais "denied"),
+       o mais alto possível no <head>.
        O <noscript> do GTM vai logo após a abertura do <body>.
        ============================================================ -->
 </head>
 <body>
+  <!-- GTM (noscript): entra AQUI, logo após a abertura do <body> (fase GTM/GA4) -->
   <a class="pular" href="#conteudo">Pular para o conteúdo</a>
 
   <header class="topo">

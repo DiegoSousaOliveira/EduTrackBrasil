@@ -5,9 +5,10 @@ import { FORMATO_CARTAO, copiarTexto, gerarCartao, montarResumo } from "./cartao
 import { carregarMunicipios, carregarReferencias, carregarUf } from "./dados.js";
 import {
   ARTIGO_TAXA, NOMES_ETAPA, NOMES_ETAPA_LONGO, NOMES_REDE, NOMES_TAXA, comparar, formatarNumero, formatarPct,
-  ultimoValor, valorNoAno,
+  normalizar, ultimoValor, valorNoAno,
 } from "./formato.js";
 import { desenharLinha, graficosDisponiveis, tabela } from "./grafico.js";
+import { track } from "./track.js";
 
 const $ = (seletor) => document.querySelector(seletor);
 
@@ -43,7 +44,10 @@ async function iniciar() {
   $("#atalhos").hidden = false;
   iniciarBusca({
     campo, lista: $("#lista-sugestoes"), status: $("#status-busca"), indice: estado.indice,
-    aoEscolher: (m) => selecionar(m.id),
+    // search: só quando a busca é confirmada (Enter ou escolha de sugestão), nunca a cada tecla
+    aoBuscar: ({ termo, total, metodo }) =>
+      track("search", { search_term: normalizar(termo).slice(0, 100), results_count: total, search_method: metodo }),
+    aoEscolher: (m) => selecionar(m.id, { origem: "busca" }),
   });
 
   document.querySelectorAll(".chip[data-id]").forEach((botao) =>
@@ -51,7 +55,7 @@ async function iniciar() {
       const m = estado.porId.get(botao.dataset.id);
       if (!m) return;
       campo.value = `${m.nome} – ${m.uf}`;
-      selecionar(m.id);
+      selecionar(m.id, { origem: "atalho" });
     }));
 
   ligarFiltro("etapa", (v) => { estado.etapa = v; renderizarTudo(); });
@@ -59,12 +63,14 @@ async function iniciar() {
   ligarFiltro("indicador", (v) => { estado.indicador = v; renderizarGraficoRendimento(); });
   $("#comparar").addEventListener("change", (ev) => {
     estado.comparar = ev.target.checked;
+    track("compare_toggle", { comparacao: estado.comparar ? "ativada" : "desativada" });
     renderizarGraficoRendimento();
     renderizarIdeb();
   });
 
   $("#gerar-cartao").addEventListener("click", abrirCartao);
   ligarDialogo();
+  observarGraficos();
 
   // Tema claro/escuro mudou: redesenha os gráficos com as novas cores
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => estado.municipio && renderizarTudo());
@@ -84,7 +90,11 @@ async function iniciar() {
 
 function ligarFiltro(nome, aoMudar) {
   document.querySelectorAll(`input[name="${nome}"]`).forEach((input) =>
-    input.addEventListener("change", () => input.checked && aoMudar(input.value)));
+    input.addEventListener("change", () => {
+      if (!input.checked) return;
+      track("change_filter", { filter_name: nome, filter_value: input.value });
+      aoMudar(input.value);
+    }));
 }
 
 function mostrarErro(mensagem) {
@@ -95,7 +105,11 @@ function mostrarErro(mensagem) {
 
 // ---------- Seleção de município ----------
 
-async function selecionar(id, { atualizarUrl = true } = {}) {
+/**
+ * Abre um município. `origem`: "busca" ou "atalho" (escolha ativa -> select_content)
+ * ou "url" (link compartilhado / botão voltar -> sem select_content).
+ */
+async function selecionar(id, { atualizarUrl = true, origem = "url" } = {}) {
   const basico = estado.porId.get(id);
   mostrarErro("");
   let dadosUf;
@@ -108,11 +122,19 @@ async function selecionar(id, { atualizarUrl = true } = {}) {
   }
   estado.dadosUf = dadosUf;
   estado.municipio = { ...basico, ...dadosUf.municipios[id] };
-  if (atualizarUrl) history.pushState({ m: id }, "", `?m=${id}`);
+  if (atualizarUrl) {
+    const params = new URLSearchParams(location.search); // preserva ?debug_tracking
+    params.set("m", id);
+    history.pushState({ m: id }, "", `?${params}`);
+  }
   document.title = `${basico.nome} – ${basico.uf} | EduTrackBrasil`;
+  if (origem !== "url") {
+    track("select_content", { content_type: "municipio", content_id: id, municipio_nome: basico.nome });
+  }
 
   $("#painel").hidden = false;
   renderizarTudo();
+  reiniciarObservacaoGraficos();
   $("#nome-municipio").focus({ preventScroll: true });
   $("#nome-municipio").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
 }
@@ -147,6 +169,7 @@ function renderizarCartoes() {
     `${NOMES_ETAPA_LONGO[etapa]} · ${NOMES_REDE[rede]}. Comparação com as médias oficiais do estado e do Brasil na mesma rede.`;
 
   if (!ultimo) {
+    avisarIndisponivel("rendimento", etapa, "sem_dados");
     $("#ano-indicadores").textContent = "";
     container.innerHTML = `<div class="cartao cartao--indisponivel"><p class="cartao__valor">Sem dados de rendimento para esta etapa
       e rede no período 2007–2025.</p><p class="nota">Isso costuma acontecer quando o município não tem matrículas nessa etapa.</p></div>`;
@@ -206,6 +229,7 @@ function renderizarIdeb() {
     const redeUf = uf.ideb[e].rede === "estadual" ? " (rede estadual)" : "";
     const selecionada = e === etapa ? ' aria-current="true"' : "";
     if (ideb.status !== "divulgado") {
+      avisarIndisponivel("ideb", e, ideb.status);
       const anterior = ultimoValor(ideb.valores, anosMun);
       const motivo = ideb.status === "sem_registro"
         ? "O município não aparece na planilha do INEP para esta etapa."
@@ -260,6 +284,53 @@ function avisarSemGraficos() {
   document.querySelectorAll(".tabela-dados").forEach((d) => { d.open = true; });
 }
 
+// ---------- Tracking: view_chart e data_unavailable ----------
+
+const indisponiveisAvisados = new Set();
+
+/** data_unavailable uma vez por município + indicador + etapa + motivo (re-render por filtro não repete). */
+function avisarIndisponivel(indicador, etapa, motivo) {
+  const chave = `${estado.municipio.id}|${indicador}|${etapa}|${motivo}`;
+  if (indisponiveisAvisados.has(chave)) return;
+  indisponiveisAvisados.add(chave);
+  track("data_unavailable", { indicador, etapa, motivo });
+}
+
+const graficosVistos = new Set();
+let observador = null;
+const areasDeGrafico = () => [...document.querySelectorAll("figure[data-chart-id] .grafico__area")];
+
+/** view_chart quando ≥ 50% da área do gráfico fica visível; uma vez por gráfico e por município. */
+function observarGraficos() {
+  if (!("IntersectionObserver" in window)) return;
+  observador = new IntersectionObserver((entradas) => {
+    for (const entrada of entradas) {
+      // isIntersecting é true com qualquer pedaço visível (inclusive na checagem inicial): exige os 50%
+      if (entrada.intersectionRatio < 0.5 || !estado.municipio) continue;
+      const chartId = entrada.target.closest("figure").dataset.chartId;
+      if (graficosVistos.has(chartId)) continue;
+      graficosVistos.add(chartId);
+      track("view_chart", {
+        chart_id: chartId,
+        indicador: chartId === "ideb" ? "ideb" : estado.indicador,
+        etapa: estado.etapa,
+        municipio_id: estado.municipio.id,
+      });
+    }
+  }, { threshold: 0.5 });
+  areasDeGrafico().forEach((area) => observador.observe(area));
+}
+
+/** Novo município: libera um novo view_chart por gráfico (re-observar dispara a checagem inicial). */
+function reiniciarObservacaoGraficos() {
+  if (!observador) return;
+  graficosVistos.clear();
+  areasDeGrafico().forEach((area) => {
+    observador.unobserve(area);
+    observador.observe(area);
+  });
+}
+
 // ---------- Cartão e compartilhamento ----------
 
 const urlDoMunicipio = (id) => `${location.origin}${location.pathname}?m=${id}`;
@@ -289,6 +360,7 @@ async function abrirCartao() {
     $("#compartilhar").hidden = !(navigator.canShare && navigator.canShare({ files: [arquivo] }));
     $("#status-compartilhar").textContent = "";
     $("#dialogo-cartao").showModal();
+    track("generate_card", { municipio_id: m.id, card_format: FORMATO_CARTAO });
   } catch (erro) {
     console.error(erro);
     mostrarErro("Não foi possível gerar o cartão neste navegador.");
@@ -301,6 +373,8 @@ async function abrirCartao() {
 function ligarDialogo() {
   const dialogo = $("#dialogo-cartao");
   const status = $("#status-compartilhar");
+  const compartilhou = (method) =>
+    track("share", { method, content_type: "cartao", item_id: estado.municipio.id });
   $("#fechar-cartao").addEventListener("click", () => dialogo.close());
   dialogo.addEventListener("click", (ev) => { if (ev.target === dialogo) dialogo.close(); }); // clique fora
 
@@ -308,17 +382,23 @@ function ligarDialogo() {
     const { arquivo, texto, url } = estado.cartao;
     try {
       await navigator.share({ files: [arquivo], title: "EduTrackBrasil", text: `${texto} ${url}` });
+      compartilhou("web_share"); // só depois de concluir: cancelar o menu não conta
       status.textContent = "Compartilhado!";
     } catch (erro) {
       if (erro.name !== "AbortError") status.textContent = "Não deu para compartilhar. Tente baixar a imagem.";
     }
   });
 
-  $("#baixar").addEventListener("click", () => { status.textContent = "Imagem baixada."; });
+  $("#whatsapp").addEventListener("click", () => compartilhou("whatsapp"));
+  $("#baixar").addEventListener("click", () => {
+    compartilhou("download");
+    status.textContent = "Imagem baixada.";
+  });
 
   $("#copiar-link").addEventListener("click", async () => {
     try {
       await copiarTexto(estado.cartao.url);
+      compartilhou("copy_link");
       status.textContent = "Link copiado!";
     } catch {
       status.textContent = `Copie o link: ${estado.cartao.url}`;
