@@ -159,6 +159,9 @@ Todos os caminhos do site são relativos, então ele funciona em subpasta (ex.: 
 - [ ] **Reconciliação:** coletor próprio (FastAPI) recebendo os mesmos eventos, para comparar com o GA4 via Data API.
 - [ ] **Dashboard** com os dados reais de uso.
 
-## Fonte e licença dos dados
+## Licença e fonte dos dados
 
-Dados: [INEP](https://www.gov.br/inep/) – Taxas de Rendimento Escolar (Censo Escolar) e Índice de Desenvolvimento da Educação Básica (Ideb). EduTrackBrasil é um projeto independente, sem vínculo com o INEP ou o MEC.
+- **Código:** licença MIT (veja [LICENSE](LICENSE)).
+- **Dados:** [INEP](https://www.gov.br/inep/) – Taxas de Rendimento Escolar (Censo Escolar) e Índice de Desenvolvimento da Educação Básica (Ideb).
+
+EduTrackBrasil é um projeto independente, sem vínculo com o INEP ou o MEC.
