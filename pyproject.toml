@@ -1,0 +1,9 @@
+[project]
+name = "edutrackbrasil"
+version = "0.1.0"
+description = "Indicadores educacionais dos municípios brasileiros (INEP) com tracking via dataLayer"
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+testpaths = ["pipeline/tests"]
+pythonpath = ["."]
