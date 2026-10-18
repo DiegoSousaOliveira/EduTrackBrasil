@@ -4,7 +4,9 @@
 
 Dados oficiais do INEP. Site estático (HTML, CSS e JavaScript puro), instrumentado com `dataLayer` e um plano de medição versionado como código, pronto para GTM + GA4.
 
-> 🚧 Em desenvolvimento: ainda não publicado. GTM, GA4 e o deploy no GitHub Pages são as próximas fases.
+**🌐 Site:** <https://diegosousaoliveira.github.io/EduTrackBrasil/>
+
+> 🚧 Em desenvolvimento. GTM e GA4 são as próximas fases.
 
 ## O problema
 
@@ -141,7 +143,11 @@ Abra <http://localhost:8000>. Para ir direto a um município, use o código IBGE
 
 > Abrir o `index.html` direto do disco (`file://`) não funciona: o navegador bloqueia o carregamento dos JSONs e dos módulos JS. Use sempre o servidor local.
 
-Todos os caminhos do site são relativos, então ele funciona em subpasta (ex.: `usuario.github.io/edutrackbrasil/`) sem ajustes.
+Todos os caminhos do site são relativos, então ele funciona em subpasta (`diegosousaoliveira.github.io/EduTrackBrasil/`) sem ajustes.
+
+### 7. Publicação
+
+O workflow [`.github/workflows/pages.yml`](.github/workflows/pages.yml) publica a pasta `site/` no GitHub Pages a cada push na `main`. Também dá para rodar à mão em **Actions → Publicar site → Run workflow**. Na primeira vez, é preciso escolher **Settings → Pages → Source: GitHub Actions**.
 
 ## Decisões de projeto
 
@@ -155,7 +161,7 @@ Todos os caminhos do site são relativos, então ele funciona em subpasta (ex.: 
 
 - [ ] **GTM + GA4:** contêiner com tags para os 8 eventos, dimensões personalizadas registradas e `share` como evento-chave, validados no Tag Assistant e na DebugView.
 - [ ] **Consent Mode v2 e LGPD:** banner com "Aceitar" e "Recusar" de mesmo destaque, os quatro sinais em `denied` por padrão e uma página de privacidade.
-- [ ] **Deploy no GitHub Pages.**
+- [x] **Deploy no GitHub Pages:** `.github/workflows/pages.yml` publica `site/` a cada push na `main`.
 - [ ] **QA automatizado:** Playwright percorrendo jornadas com o GTM bloqueado, validando cada push contra o JSON Schema, no GitHub Actions.
 - [ ] **Reconciliação:** coletor próprio (FastAPI) recebendo os mesmos eventos, para comparar com o GA4 via Data API.
 - [ ] **Dashboard** com os dados reais de uso.
