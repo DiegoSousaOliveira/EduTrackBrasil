@@ -1,0 +1,12 @@
+# Dados brutos do INEP (pesados, baixados manualmente)
+data/raw/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Sistema
+Thumbs.db
+.DS_Store
