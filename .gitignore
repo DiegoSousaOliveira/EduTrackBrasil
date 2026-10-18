@@ -1,6 +1,9 @@
 # Dados brutos do INEP (pesados, baixados manualmente)
 data/raw/
 
+# Não vou enviar o plano para o github
+docs/plano.md
+
 # Python
 .venv/
 __pycache__/

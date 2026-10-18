@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>EduTrackBrasil – educação do seu município em números</title>
+  <meta name="description" content="Busque qualquer município do Brasil e veja aprovação, reprovação, abandono e IDEB, com a evolução ao longo dos anos e a comparação com o estado e o Brasil. Dados oficiais do INEP.">
+  <meta name="theme-color" content="#0f5e9c">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230f5e9c'/%3E%3Cpath d='M7 22l6-7 5 4 7-9' stroke='white' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="preload" href="data/municipios.json" as="fetch" crossorigin>
+  <link rel="stylesheet" href="css/style.css">
+
+  <!-- ============================================================
+       GTM: o snippet do Google Tag Manager entra AQUI (Etapa futura),
+       logo após o dataLayer e o Consent Mode padrão, o mais alto possível no <head>.
+       O <noscript> do GTM vai logo após a abertura do <body>.
+       ============================================================ -->
+</head>
+<body>
+  <a class="pular" href="#conteudo">Pular para o conteúdo</a>
+
+  <header class="topo">
+    <div class="topo__inner">
+      <a class="marca" href="./" aria-label="EduTrackBrasil, página inicial">
+        <svg aria-hidden="true" viewBox="0 0 32 32" width="28" height="28"><rect width="32" height="32" rx="7" fill="currentColor"/><path d="M7 22l6-7 5 4 7-9" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>EduTrack<strong>Brasil</strong></span>
+      </a>
+    </div>
+  </header>
+
+  <main id="conteudo">
+    <section class="busca-hero" aria-labelledby="titulo-busca">
+      <h1 id="titulo-busca">Como está a educação no seu município?</h1>
+      <p class="sub">Aprovação, reprovação, abandono e IDEB de todos os 5.571 municípios, com dados oficiais do INEP.</p>
+
+      <form class="busca" id="form-busca" role="search" autocomplete="off">
+        <label for="campo-busca" class="rotulo">Digite o nome da cidade</label>
+        <div class="busca__campo">
+          <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M20 20l-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          <input id="campo-busca" type="text" inputmode="search" enterkeyhint="search" spellcheck="false"
+                 placeholder="Ex.: Teresina, São Paulo, Hugo Napoleão"
+                 role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="lista-sugestoes"
+                 aria-describedby="dica-busca" disabled>
+        </div>
+        <ul id="lista-sugestoes" class="sugestoes" role="listbox" aria-label="Municípios encontrados" hidden></ul>
+        <p id="dica-busca" class="dica">Acentos e maiúsculas não importam. Use as setas para escolher.</p>
+        <p id="status-busca" class="visualmente-oculto" role="status" aria-live="polite"></p>
+      </form>
+
+      <p class="atalhos" id="atalhos" hidden>Experimente:
+        <button type="button" class="chip" data-id="2211001">Teresina – PI</button>
+        <button type="button" class="chip" data-id="2204600">Hugo Napoleão – PI</button>
+        <button type="button" class="chip" data-id="3550308">São Paulo – SP</button>
+      </p>
+      <p id="erro-carga" class="aviso" role="alert" hidden></p>
+    </section>
+
+    <div id="painel" hidden>
+      <section class="cabecalho-municipio" aria-labelledby="nome-municipio">
+        <h2 id="nome-municipio" tabindex="-1"></h2>
+        <p id="info-municipio" class="sub"></p>
+      </section>
+
+      <section class="filtros" aria-label="Filtros">
+        <fieldset class="segmentado" id="filtro-etapa">
+          <legend>Etapa</legend>
+          <label><input type="radio" name="etapa" value="ef_ai" checked><span>Anos iniciais</span></label>
+          <label><input type="radio" name="etapa" value="ef_af"><span>Anos finais</span></label>
+          <label><input type="radio" name="etapa" value="em"><span>Ensino médio</span></label>
+        </fieldset>
+        <fieldset class="segmentado" id="filtro-rede">
+          <legend>Rede de ensino</legend>
+          <label><input type="radio" name="rede" value="total" checked><span>Todas</span></label>
+          <label><input type="radio" name="rede" value="publica"><span>Pública</span></label>
+        </fieldset>
+      </section>
+
+      <section class="bloco" aria-labelledby="titulo-indicadores">
+        <h3 id="titulo-indicadores">Taxas de rendimento <span id="ano-indicadores" class="etiqueta"></span></h3>
+        <p class="nota" id="contexto-indicadores"></p>
+        <div class="cartoes" id="cartoes"></div>
+      </section>
+
+      <section class="bloco" aria-labelledby="titulo-evolucao">
+        <div class="bloco__titulo">
+          <h3 id="titulo-evolucao">Evolução 2007–2025</h3>
+          <label class="interruptor">
+            <input type="checkbox" id="comparar" checked>
+            <span>Comparar com estado e Brasil</span>
+          </label>
+        </div>
+        <fieldset class="segmentado segmentado--pequeno" id="filtro-indicador">
+          <legend class="visualmente-oculto">Indicador do gráfico</legend>
+          <label><input type="radio" name="indicador" value="aprovacao" checked><span>Aprovação</span></label>
+          <label><input type="radio" name="indicador" value="reprovacao"><span>Reprovação</span></label>
+          <label><input type="radio" name="indicador" value="abandono"><span>Abandono</span></label>
+        </fieldset>
+        <figure class="grafico" id="figura-rendimento" data-chart-id="rendimento">
+          <div class="grafico__area"><canvas id="grafico-rendimento" role="img" aria-label="Gráfico de linha com a evolução da taxa"></canvas></div>
+          <figcaption class="nota">
+            <strong>2020:</strong> a aprovação subiu de forma atípica por causa de ajustes feitos pelas escolas durante a pandemia,
+            segundo o INEP. Em 2021–2022 voltou perto do patamar anterior. Anos sem dado aparecem como lacuna.
+          </figcaption>
+          <details class="tabela-dados">
+            <summary>Ver os dados em tabela</summary>
+            <div class="tabela-rolagem" id="tabela-rendimento"></div>
+          </details>
+        </figure>
+      </section>
+
+      <section class="bloco" aria-labelledby="titulo-ideb">
+        <h3 id="titulo-ideb">IDEB <span class="etiqueta">rede pública</span></h3>
+        <p class="nota">Índice de Desenvolvimento da Educação Básica, de 0 a 10. Combina a aprovação com as notas do Saeb.</p>
+        <div class="cartoes cartoes--ideb" id="cartoes-ideb"></div>
+        <figure class="grafico" id="figura-ideb" data-chart-id="ideb">
+          <div class="grafico__area grafico__area--baixa"><canvas id="grafico-ideb" role="img" aria-label="Gráfico de linha com a evolução do IDEB"></canvas></div>
+          <figcaption class="nota" id="legenda-ideb"></figcaption>
+          <details class="tabela-dados">
+            <summary>Ver os dados em tabela</summary>
+            <div class="tabela-rolagem" id="tabela-ideb"></div>
+          </details>
+        </figure>
+      </section>
+
+      <section class="bloco bloco--destaque" aria-labelledby="titulo-cartao">
+        <h3 id="titulo-cartao">Compartilhe o resumo da sua cidade</h3>
+        <p class="nota">Gera uma imagem com os principais números, pronta para WhatsApp e redes sociais.</p>
+        <button type="button" class="botao botao--primario" id="gerar-cartao">Gerar cartão</button>
+      </section>
+    </div>
+  </main>
+
+  <dialog id="dialogo-cartao" aria-labelledby="titulo-dialogo">
+    <div class="dialogo__topo">
+      <h2 id="titulo-dialogo">Seu cartão</h2>
+      <button type="button" class="botao-icone" id="fechar-cartao" aria-label="Fechar">
+        <svg aria-hidden="true" viewBox="0 0 24 24" width="22" height="22"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <img id="previa-cartao" alt="" width="1080" height="1350">
+    <div class="dialogo__acoes">
+      <button type="button" class="botao botao--primario" id="compartilhar" data-method="web_share" hidden>Compartilhar</button>
+      <a class="botao botao--whatsapp" id="whatsapp" data-method="whatsapp" target="_blank" rel="noopener">WhatsApp</a>
+      <a class="botao" id="baixar" data-method="download">Baixar PNG</a>
+      <button type="button" class="botao" id="copiar-link" data-method="copy_link">Copiar link</button>
+    </div>
+    <p class="nota" id="status-compartilhar" role="status" aria-live="polite"></p>
+  </dialog>
+
+  <footer class="rodape">
+    <p><strong>Fonte dos dados:</strong> INEP –
+      <a href="https://www.gov.br/inep/pt-br/acesso-a-informacao/dados-abertos/indicadores-educacionais/taxas-de-rendimento-escolar" rel="noopener">Taxas de Rendimento Escolar</a> (Censo Escolar 2007–2025) e
+      <a href="https://www.gov.br/inep/pt-br/areas-de-atuacao/pesquisas-estatisticas-e-indicadores/ideb/resultados" rel="noopener">Ideb 2025</a>.
+    </p>
+    <p>As médias do estado e do Brasil são as oficiais do INEP (não são calculadas a partir dos municípios).
+      No IDEB do ensino médio, a comparação com o estado usa a rede estadual.</p>
+    <p>EduTrackBrasil é um projeto independente, sem vínculo com o INEP ou o MEC.</p>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"
+          integrity="sha384-9nhczxUqK87bcKHh20fSQcTGD4qq5GhayNYSYWqwBkINBhOfQLg/P5HG5lF1urn4"
+          crossorigin="anonymous" defer></script>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
