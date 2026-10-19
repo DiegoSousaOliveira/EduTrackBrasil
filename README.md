@@ -51,6 +51,14 @@ Detalhes em [docs/inspecao_dados.md](docs/inspecao_dados.md). Os principais:
 - Valores ausentes em vários formatos (`--`, `-`, `ND`, `ND*`), floats como `73.09999999999998`, UFs abreviadas ("R. G. do Norte"), coluna duplicada no arquivo do IDEB.
 - Validações a cada execução: md5 dos 62 arquivos, aprovação + reprovação + abandono = 100, faixas 0–100 e 0–10, municípios criados depois de 2007. Resultado em [docs/relatorio_qualidade.md](docs/relatorio_qualidade.md).
 
+#### Bug de tracking encontrado e corrigido: parâmetros vazando entre eventos
+
+- **Sintoma:** com o GTM instalado, parâmetros de um evento apareciam em eventos seguintes, por exemplo um `search_term` dentro do `share`.
+- **Causa:** o modelo de dados do GTM é **persistente**. Ele guarda o último valor de cada chave entre pushes, e a tag do GA4 envia todos os parâmetros mapeados em todo evento. A primeira versão do `track()` limpava só as chaves do evento *imediatamente anterior*. Bastava um push feito fora do `track()` (outro script, uma tag HTML no GTM) para o valor ficar preso.
+- **Como foi reproduzido:** no Chrome, lendo o próprio modelo do GTM (`google_tag_manager['GTM-K8NTDB7L'].dataLayer.get(...)`) a cada evento. Depois de um push externo com `search_term: 'vazou'`, o valor aparecia em `view_chart`, `generate_card` e `share`.
+- **Correção:** todo push agora leva **todos os 18 parâmetros do contrato**, com `undefined` nos que não pertencem ao evento. O GTM limpa os valores antigos e o GA4 descarta os indefinidos. A lista é gerada do schema ([`site/js/parametros-eventos.js`](site/js/parametros-eventos.js)), então um parâmetro novo no contrato entra na limpeza automaticamente. A correção não depende do histórico de pushes.
+- **Validação e testes:** quem audita o `dataLayer` descarta as chaves sem valor e as chaves `gtm.*` antes de validar ([`tracking/validacao.py`](tracking/validacao.py)). Testes de regressão garantem que o push completo é válido, que um parâmetro vazado (`share` com `search_term`) é **rejeitado** pelo contrato e que o `track.js` usa a lista completa.
+
 ### Tracking
 
 O plano de medição é **código**: [`tracking/schema/events.schema.json`](tracking/schema/events.schema.json) é a fonte da verdade, e a documentação ([`tracking/docs/plano_de_medicao.md`](tracking/docs/plano_de_medicao.md)) é gerada a partir dele.
@@ -67,7 +75,7 @@ O plano de medição é **código**: [`tracking/schema/events.schema.json`](trac
 | `data_unavailable` | personalizado | IDEB não divulgado ou etapa sem dados |
 | `consent_update` | personalizado | escolha no banner de cookies (aceitar ou recusar) |
 
-- Todo evento passa por `track()` ([`site/js/track.js`](site/js/track.js)), que envia `event_id` (UUID) e `schema_version`, e limpa os parâmetros do evento anterior (o modelo de dados do GTM é persistente).
+- Todo evento passa por `track()` ([`site/js/track.js`](site/js/track.js)), que envia `event_id` (UUID), `schema_version` e **todos os parâmetros do contrato**, com `undefined` nos que não são do evento, para limpar o modelo de dados persistente do GTM (veja o bug acima).
 - Em ambiente local, cada push aparece no console e é **validado contra o contrato**. Violações (nome em camelCase, parâmetro faltando, código IBGE como número) viram `console.warn`.
 - Os testes conferem os limites do GA4 (nomes ≤ 40 caracteres, ≤ 25 parâmetros, valores ≤ 100), se o contrato rejeita inconsistências típicas e se todo evento do contrato está implementado no site.
 
@@ -135,12 +143,13 @@ python -m tracking.gerar --verificar # só confere se estão atualizados
 python -m pytest
 ```
 
-São 94 testes:
+São 107 testes:
 
 - **regras de leitura:** com rótulos reais das planilhas do INEP;
 - **contrato dos JSONs:** cerca de 5.570 municípios, códigos de 7 dígitos, sem duplicatas, taxas entre 0 e 100, somas ≈ 100, IDEB coerente;
 - **contrato de eventos:** limites do GA4, inconsistências rejeitadas e documentação atualizada;
-- **páginas HTML:** Consent Mode antes do GTM, `<noscript>`, banner, preferências e caminhos relativos.
+- **páginas HTML:** Consent Mode antes do GTM, `<noscript>`, banner, preferências e caminhos relativos;
+- **formato do push:** todos os parâmetros presentes, regressão do vazamento entre eventos.
 
 ### 6. Ver o site localmente
 

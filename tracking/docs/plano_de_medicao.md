@@ -25,7 +25,8 @@
 - Eventos recomendados do GA4 onde existem (`search`, `select_content`, `share`); personalizados para o resto.
 - Todo push leva `event_id` (UUID v4, para deduplicar e reconciliar) e `schema_version` (versão deste contrato).
 - Códigos IBGE sempre como **texto** de 7 dígitos, nunca número.
-- O helper `track()` limpa os parâmetros do evento anterior que não fazem parte do evento atual (envia-os como `undefined`). Motivo: o modelo de dados do GTM é persistente, e uma variável de dataLayer leria o valor antigo, por exemplo `etapa` de um `view_chart` aparecendo num `share`.
+- **Todo push leva todos os parâmetros do contrato**: os que não pertencem ao evento vão como `undefined`. Motivo: o modelo de dados do GTM é persistente (guarda o último valor de cada chave entre pushes) e a tag do GA4 envia todos os parâmetros mapeados em todo evento; sem isso, um `search_term` antigo vazaria para um `share`. Com `undefined`, o GTM limpa o valor antigo e o GA4 descarta o parâmetro vazio. A lista vem de `site/js/parametros-eventos.js`, gerado deste schema.
+- Quem audita o `dataLayer` (testes, QA) deve descartar as chaves `undefined`/`null` e as chaves `gtm.*` (o GTM grava `gtm.uniqueEventId` em cada objeto) antes de validar contra o schema (ver `tracking/validacao.py`).
 - Em ambiente local (`localhost`, `127.0.0.1` ou `?debug_tracking`), cada push é mostrado no console e validado contra este contrato; violações aparecem como `console.warn`.
 
 ## 3. Resumo dos eventos

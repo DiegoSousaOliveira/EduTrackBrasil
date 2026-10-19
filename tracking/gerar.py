@@ -14,6 +14,7 @@ RAIZ = Path(__file__).resolve().parent.parent
 SCHEMA = RAIZ / "tracking" / "schema" / "events.schema.json"
 DOC = RAIZ / "tracking" / "docs" / "plano_de_medicao.md"
 CONTRATO_JS = RAIZ / "site" / "js" / "contrato-eventos.js"
+PARAMETROS_JS = RAIZ / "site" / "js" / "parametros-eventos.js"
 CAMPOS_COMUNS = ("event", "event_id", "schema_version")
 
 
@@ -79,9 +80,14 @@ def gerar_markdown(schema: dict) -> str:
         "- Eventos recomendados do GA4 onde existem (`search`, `select_content`, `share`); personalizados para o resto.",
         "- Todo push leva `event_id` (UUID v4, para deduplicar e reconciliar) e `schema_version` (versão deste contrato).",
         "- Códigos IBGE sempre como **texto** de 7 dígitos, nunca número.",
-        "- O helper `track()` limpa os parâmetros do evento anterior que não fazem parte do evento atual "
-        "(envia-os como `undefined`). Motivo: o modelo de dados do GTM é persistente, e uma variável de "
-        "dataLayer leria o valor antigo, por exemplo `etapa` de um `view_chart` aparecendo num `share`.",
+        "- **Todo push leva todos os parâmetros do contrato**: os que não pertencem ao evento vão como `undefined`. "
+        "Motivo: o modelo de dados do GTM é persistente (guarda o último valor de cada chave entre pushes) e a tag "
+        "do GA4 envia todos os parâmetros mapeados em todo evento; sem isso, um `search_term` antigo vazaria para um "
+        "`share`. Com `undefined`, o GTM limpa o valor antigo e o GA4 descarta o parâmetro vazio. A lista vem de "
+        "`site/js/parametros-eventos.js`, gerado deste schema.",
+        "- Quem audita o `dataLayer` (testes, QA) deve descartar as chaves `undefined`/`null` e as chaves `gtm.*` "
+        "(o GTM grava `gtm.uniqueEventId` em cada objeto) antes de validar contra o schema "
+        "(ver `tracking/validacao.py`).",
         "- Em ambiente local (`localhost`, `127.0.0.1` ou `?debug_tracking`), cada push é mostrado no console e "
         "validado contra este contrato; violações aparecem como `console.warn`.", "",
         "## 3. Resumo dos eventos", "",
@@ -143,9 +149,22 @@ def gerar_js(schema: dict) -> str:
             f"export const CONTRATO = {json.dumps(schema, ensure_ascii=False, separators=(',', ':'))};\n")
 
 
+def parametros(schema: dict) -> list[str]:
+    """Todos os parâmetros de evento do contrato (sem event, event_id e schema_version), em ordem alfabética."""
+    return sorted({p for e in eventos(schema) for p in e["properties"] if p not in CAMPOS_COMUNS})
+
+
+def gerar_parametros_js(schema: dict) -> str:
+    lista = json.dumps(parametros(schema), ensure_ascii=False)
+    return ("// Gerado por `python -m tracking.gerar` a partir de tracking/schema/events.schema.json. Não edite.\n"
+            "// Todos os parâmetros conhecidos: track() envia cada um deles em todo push (undefined quando não\n"
+            "// pertence ao evento) para limpar valores antigos no modelo de dados persistente do GTM.\n"
+            f"export const PARAMETROS = Object.freeze({lista});\n")
+
+
 def arquivos_gerados() -> dict[Path, str]:
     schema = carregar_schema()
-    return {DOC: gerar_markdown(schema), CONTRATO_JS: gerar_js(schema)}
+    return {DOC: gerar_markdown(schema), CONTRATO_JS: gerar_js(schema), PARAMETROS_JS: gerar_parametros_js(schema)}
 
 
 def main() -> int:

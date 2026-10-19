@@ -1,12 +1,15 @@
 // Helper único de tracking: todo evento do site passa por track(evento, parametros).
 //
 // - Faz dataLayer.push com event_id (UUID v4) e schema_version (versão do contrato).
-// - Limpa parâmetros do evento anterior: o modelo de dados do GTM é persistente, então um
-//   parâmetro que não é reenviado continuaria com o valor antigo nas variáveis de dataLayer.
+// - Envia TODOS os parâmetros conhecidos do contrato em todo push, com undefined nos que não
+//   pertencem ao evento. O modelo de dados do GTM é persistente (guarda o último valor de cada
+//   chave entre pushes) e a tag do GA4 envia todos os parâmetros mapeados em todo evento: sem
+//   isso, um search_term antigo vazaria para um share. Com undefined, o GTM limpa o valor e o
+//   GA4 descarta o parâmetro. Não depende do histórico: vale mesmo se alguém fizer push por fora.
 // - Em ambiente local (ou com ?debug_tracking na URL) mostra cada push no console e valida
 //   contra o contrato gerado de tracking/schema/events.schema.json.
-//
-// Ainda não há GTM/GA4: os eventos ficam em window.dataLayer, prontos para o contêiner ler.
+
+import { PARAMETROS } from "./parametros-eventos.js";
 
 export const SCHEMA_VERSION = "1.0.0";
 
@@ -24,8 +27,6 @@ const contratoPronto = MODO_DEBUG
     })
   : Promise.resolve(null);
 
-let chavesAnteriores = [];
-
 function novoUuid() {
   if (crypto.randomUUID) return crypto.randomUUID();
   const b = crypto.getRandomValues(new Uint8Array(16));
@@ -35,24 +36,31 @@ function novoUuid() {
   return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
 }
 
-/** Envia um evento ao dataLayer. Retorna o objeto do evento (sem as chaves de limpeza). */
-export function track(evento, parametros = {}) {
-  const payload = { event: evento, event_id: novoUuid(), schema_version: SCHEMA_VERSION, ...parametros };
-  const limpeza = {};
-  for (const chave of chavesAnteriores) if (!(chave in payload)) limpeza[chave] = undefined;
-  chavesAnteriores = Object.keys(parametros);
+/** Objeto do push: todos os parâmetros conhecidos como undefined, sobrescritos pelos do evento. */
+export function montarPush(evento, parametros = {}) {
+  const push = { event: evento, event_id: novoUuid(), schema_version: SCHEMA_VERSION };
+  for (const nome of PARAMETROS) push[nome] = undefined;
+  return Object.assign(push, parametros);
+}
 
-  window.dataLayer.push({ ...limpeza, ...payload });
+/** Só as chaves com valor (para mostrar no console). */
+const semIndefinidos = (obj) => Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined));
+
+/** Envia um evento ao dataLayer. Retorna uma cópia do objeto enviado. */
+export function track(evento, parametros = {}) {
+  const push = montarPush(evento, parametros);
+  const copia = { ...push }; // o GTM grava gtm.uniqueEventId no objeto recebido; validamos a cópia
+  window.dataLayer.push(push);
 
   if (MODO_DEBUG) {
-    console.info(`%c[track] ${evento}`, "color:#0f5e9c;font-weight:bold", payload);
+    console.info(`%c[track] ${evento}`, "color:#0f5e9c;font-weight:bold", semIndefinidos(copia));
     contratoPronto.then((contrato) => {
       if (!contrato) return;
-      const erros = validar(payload, contrato);
-      if (erros.length) console.warn(`[track] "${evento}" viola o contrato v${SCHEMA_VERSION}:`, erros, payload);
+      const erros = validar(copia, contrato);
+      if (erros.length) console.warn(`[track] "${evento}" viola o contrato v${SCHEMA_VERSION}:`, erros, semIndefinidos(copia));
     });
   }
-  return payload;
+  return copia;
 }
 
 // ---------- Validação (subconjunto de JSON Schema usado no contrato) ----------
@@ -70,7 +78,10 @@ const TIPOS = {
   boolean: (v) => typeof v === "boolean",
 };
 
-/** Lista de violações do payload (vazia = válido). */
+/**
+ * Lista de violações do payload (vazia = válido).
+ * Chaves com valor undefined são ignoradas: é assim que track() limpa os parâmetros de outros eventos.
+ */
 export function validar(payload, contrato) {
   const definicao = contrato.oneOf
     .map((r) => contrato.$defs[r.$ref.split("/").pop()])
