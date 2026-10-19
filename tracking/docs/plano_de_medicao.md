@@ -2,7 +2,7 @@
 
 > Gerado por `python -m tracking.gerar` a partir de `tracking/schema/events.schema.json`. Não edite à mão: mude o schema e gere de novo.
 
-**Versão do contrato:** `1.0.0` · **Eventos:** 8 · **Implementação:** `site/js/track.js` (helper) e `site/js/app.js` (gatilhos)
+**Versão do contrato:** `1.0.0` · **Eventos:** 9 · **Implementação:** `site/js/track.js` (helper) e `site/js/app.js` (gatilhos)
 
 ## 1. Objetivo e KPIs
 
@@ -40,6 +40,7 @@
 | `generate_card` | personalizado | O cartão-resumo da cidade foi gerado e exibido. | `municipio_id`, `card_format` |
 | `share` ⭐ | recomendado GA4 | O cartão foi compartilhado (evento-chave / conversão do projeto). | `method`, `content_type`, `item_id` |
 | `data_unavailable` | personalizado | A tela mostrou um indicador sem dado (IDEB não divulgado ou etapa sem taxas de rendimento). | `indicador`, `etapa`, `motivo` |
+| `consent_update` | personalizado | A pessoa fez (ou mudou) a escolha no banner de cookies. | `analytics_storage` |
 
 ⭐ = evento-chave (conversão) no GA4.
 
@@ -231,19 +232,40 @@ window.dataLayer.push({
 });
 ```
 
+### `consent_update`
+
+- **Tipo:** personalizado
+- **O que significa:** A pessoa fez (ou mudou) a escolha no banner de cookies.
+- **Gatilho exato:** Clique em 'Aceitar' ou 'Recusar' no banner (na primeira visita ou ao reabrir por 'Preferências de privacidade'). Vem logo depois do comando gtag('consent','update',...). Reaplicar a escolha salva ao carregar a página NÃO dispara o evento.
+- **Status:** implementado no código · validação no GTM Preview / DebugView: pendente (fase GTM)
+
+| Parâmetro | Tipo | Obrigatório | Valores permitidos | Descrição |
+|---|---|---|---|---|
+| `analytics_storage` | string | sim | `granted`, `denied` | Escolha da pessoa no banner de cookies para o armazenamento de análise (Consent Mode v2). Os sinais de anúncio ficam sempre 'denied'. |
+
+```js
+window.dataLayer.push({
+  "event": "consent_update",
+  "event_id": "b8e4c2a6-3f1d-4a7b-9c5e-2d8f6a1b4c39",
+  "schema_version": "1.0.0",
+  "analytics_storage": "granted"
+});
+```
+
 ## 5. Dicionário de parâmetros
 
 Cada parâmetro tem uma definição única, reutilizada entre eventos (evita dimensões duplicadas no GA4).
 
 | Parâmetro | Tipo | Regras | Usado em | Dimensão personalizada GA4 | Definição |
 |---|---|---|---|---|---|
+| `analytics_storage` | string | `granted`, `denied` | `consent_update` | não | Escolha da pessoa no banner de cookies para o armazenamento de análise (Consent Mode v2). Os sinais de anúncio ficam sempre 'denied'. Com o Consent Mode básico, o GA4 só recebe o consent_update 'granted' (sem consentimento as tags não disparam). A taxa de recusa real virá do coletor próprio (fase de reconciliação). |
 | `card_format` | string | `png_1080x1350` | `generate_card` | sim | Formato do cartão gerado (tipo e tamanho da imagem). |
 | `chart_id` | string | `rendimento`, `ideb` | `view_chart` | sim | Qual gráfico entrou na tela. |
 | `comparacao` | string | `ativada`, `desativada` | `compare_toggle` | sim | Estado da comparação com estado e Brasil depois do clique. |
 | `content_id` | string | regex `^[0-9]{7}$` | `select_content` | não | Código IBGE do município escolhido. |
 | `content_type` | string | `municipio` | `select_content`, `share` | não | Tipo de conteúdo escolhido; sempre 'municipio'. |
 | `etapa` | string | `ef_ai`, `ef_af`, `em` | `data_unavailable`, `view_chart` | sim | Etapa de ensino: ef_ai = fundamental anos iniciais, ef_af = fundamental anos finais, em = ensino médio. |
-| `event_id` | string | regex `^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$` | `change_filter`, `compare_toggle`, `data_unavailable`, `generate_card`, `search`, `select_content`, `share`, `view_chart` | não | Identificador único do push (UUID v4). Serve para deduplicar e, no futuro, reconciliar GA4 com o backend próprio. |
+| `event_id` | string | regex `^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$` | `change_filter`, `compare_toggle`, `consent_update`, `data_unavailable`, `generate_card`, `search`, `select_content`, `share`, `view_chart` | não | Identificador único do push (UUID v4). Serve para deduplicar e, no futuro, reconciliar GA4 com o backend próprio. |
 | `filter_name` | string | `etapa`, `rede`, `indicador` | `change_filter` | sim | Qual filtro foi alterado. |
 | `filter_value` | string | `ef_ai`, `ef_af`, `em`, `total`, `publica`, `aprovacao`, `reprovacao`, `abandono` | `change_filter` | sim | Novo valor do filtro. |
 | `indicador` | string | `aprovacao`, `reprovacao`, `abandono`, `rendimento`, `ideb` | `data_unavailable`, `view_chart` | sim | Indicador mostrado ou ausente. Em view_chart: a taxa do gráfico de rendimento ou 'ideb'. Em data_unavailable: 'rendimento' (taxas) ou 'ideb'. |
@@ -253,7 +275,7 @@ Cada parâmetro tem uma definição única, reutilizada entre eventos (evita dim
 | `municipio_id` | string | regex `^[0-9]{7}$` | `generate_card`, `view_chart` | sim | Código IBGE do município em tela. |
 | `municipio_nome` | string | até 100 caracteres | `select_content` | sim | Nome do município como exibido no site (com acento). |
 | `results_count` | integer | ≥ 0 | `search` | não | Quantos municípios a busca encontrou (0 = busca sem resultado). Registrar como métrica personalizada se quiser médias; para filtrar buscas sem resultado basta comparar com 0. |
-| `schema_version` | string | `1.0.0` | `change_filter`, `compare_toggle`, `data_unavailable`, `generate_card`, `search`, `select_content`, `share`, `view_chart` | não | Versão deste contrato no momento do envio. Muda quando um evento ou parâmetro muda de forma incompatível. |
+| `schema_version` | string | `1.0.0` | `change_filter`, `compare_toggle`, `consent_update`, `data_unavailable`, `generate_card`, `search`, `select_content`, `share`, `view_chart` | não | Versão deste contrato no momento do envio. Muda quando um evento ou parâmetro muda de forma incompatível. |
 | `search_method` | string | `autocomplete`, `digitado` | `search` | sim | Como a busca foi confirmada: escolhendo uma sugestão da lista ou apertando Enter no texto digitado. |
 | `search_term` | string | regex `^[^A-Z\u0080-\uffff]*$`; até 100 caracteres | `search` | não | Texto buscado, normalizado: minúsculas, sem acento e com espaços simples (mesma regra do pipeline). search_term é parâmetro reservado do GA4 (já aparece nos relatórios de busca), não precisa de dimensão personalizada. |
 

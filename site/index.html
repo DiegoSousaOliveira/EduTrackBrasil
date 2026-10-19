@@ -11,17 +11,32 @@
   <link rel="preload" href="data/municipios.json" as="fetch" crossorigin>
   <link rel="stylesheet" href="css/style.css">
 
-  <!-- dataLayer criado antes de tudo: eventos de track() e, depois, o GTM usam o mesmo array -->
-  <script>window.dataLayer = window.dataLayer || [];</script>
-  <!-- ============================================================
-       GTM: o snippet do Google Tag Manager entra AQUI (fase GTM/GA4),
-       depois do dataLayer e do Consent Mode v2 padrão (4 sinais "denied"),
-       o mais alto possível no <head>.
-       O <noscript> do GTM vai logo após a abertura do <body>.
-       ============================================================ -->
+  <!-- 1) dataLayer + Consent Mode v2: tudo negado por padrão, ANTES do GTM e de forma síncrona -->
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('consent','default',{ad_storage:'denied',analytics_storage:'denied',ad_user_data:'denied',ad_personalization:'denied',wait_for_update:500});
+    // Reaplica a escolha salva no banner (js/consentimento.js). Anúncios ficam sempre negados.
+    try {
+      var escolha = JSON.parse(localStorage.getItem('edutrack_consentimento'));
+      if (escolha && escolha.versao === 1 && escolha.analytics_storage === 'granted') {
+        gtag('consent','update',{analytics_storage:'granted'});
+      }
+    } catch (e) {}
+  </script>
+  <!-- 2) Google Tag Manager -->
+  <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+  new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+  j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+  'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+  })(window,document,'script','dataLayer','GTM-K8NTDB7L');</script>
+  <!-- End Google Tag Manager -->
 </head>
 <body>
-  <!-- GTM (noscript): entra AQUI, logo após a abertura do <body> (fase GTM/GA4) -->
+  <!-- Google Tag Manager (noscript) -->
+  <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-K8NTDB7L"
+  height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+  <!-- End Google Tag Manager (noscript) -->
   <a class="pular" href="#conteudo">Pular para o conteúdo</a>
 
   <header class="topo">
@@ -160,11 +175,14 @@
     <p>As médias do estado e do Brasil são as oficiais do INEP (não são calculadas a partir dos municípios).
       No IDEB do ensino médio, a comparação com o estado usa a rede estadual.</p>
     <p>EduTrackBrasil é um projeto independente, sem vínculo com o INEP ou o MEC.</p>
+    <p class="rodape__links"><a href="privacidade.html">Política de privacidade</a> ·
+      <a href="#" data-abrir-consentimento>Preferências de privacidade</a></p>
   </footer>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"
           integrity="sha384-9nhczxUqK87bcKHh20fSQcTGD4qq5GhayNYSYWqwBkINBhOfQLg/P5HG5lF1urn4"
           crossorigin="anonymous" defer></script>
+  <script type="module" src="js/consentimento.js"></script>
   <script type="module" src="js/app.js"></script>
 </body>
 </html>

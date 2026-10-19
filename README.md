@@ -2,11 +2,11 @@
 
 **Como está a educação no seu município?** Busque qualquer um dos 5.571 municípios do Brasil e veja aprovação, reprovação, abandono e IDEB, com a evolução de 2007 a 2025 e a comparação com a média do estado e do Brasil. No fim, gere um cartão-resumo para compartilhar.
 
-Dados oficiais do INEP. Site estático (HTML, CSS e JavaScript puro), instrumentado com `dataLayer` e um plano de medição versionado como código, pronto para GTM + GA4.
+Dados oficiais do INEP. Site estático (HTML, CSS e JavaScript puro), instrumentado com `dataLayer`, Google Tag Manager e Consent Mode v2, e com um plano de medição versionado como código.
 
 **🌐 Site:** <https://diegosousaoliveira.github.io/EduTrackBrasil/>
 
-> 🚧 Em desenvolvimento. GTM e GA4 são as próximas fases.
+> 🚧 Em desenvolvimento. O GTM já está instalado, com consentimento. As tags do GA4 são a próxima fase.
 
 ## O problema
 
@@ -21,7 +21,7 @@ flowchart LR
     A[INEP<br/>ZIPs com .xls/.xlsx] -->|pipeline Python/Pandas| B[site/data/*.json]
     B --> C[Site estático<br/>HTML + CSS + JS + Chart.js]
     C -->|track| D[(window.dataLayer)]
-    D -.->|próxima fase| E[GTM → GA4]
+    D --> E[GTM<br/>Consent Mode v2] -.->|próxima fase| F[GA4]
     S[tracking/schema<br/>events.schema.json] -->|gera| P[plano_de_medicao.md]
     S -->|gera| V[contrato-eventos.js<br/>validação em dev]
     V --> C
@@ -65,10 +65,19 @@ O plano de medição é **código**: [`tracking/schema/events.schema.json`](trac
 | `generate_card` | personalizado | cartão-resumo gerado |
 | `share` ⭐ | recomendado GA4 | cartão compartilhado (evento-chave) |
 | `data_unavailable` | personalizado | IDEB não divulgado ou etapa sem dados |
+| `consent_update` | personalizado | escolha no banner de cookies (aceitar ou recusar) |
 
 - Todo evento passa por `track()` ([`site/js/track.js`](site/js/track.js)), que envia `event_id` (UUID) e `schema_version`, e limpa os parâmetros do evento anterior (o modelo de dados do GTM é persistente).
 - Em ambiente local, cada push aparece no console e é **validado contra o contrato**. Violações (nome em camelCase, parâmetro faltando, código IBGE como número) viram `console.warn`.
 - Os testes conferem os limites do GA4 (nomes ≤ 40 caracteres, ≤ 25 parâmetros, valores ≤ 100), se o contrato rejeita inconsistências típicas e se todo evento do contrato está implementado no site.
+
+### Privacidade e consentimento
+
+- **Consent Mode v2** com os quatro sinais em `denied` por padrão, definidos no `<head>` **antes** do GTM (`GTM-K8NTDB7L`), em todas as páginas.
+- **Banner** ([`site/js/consentimento.js`](site/js/consentimento.js)) com "Aceitar" e "Recusar" de mesmo destaque. Aceitar envia `gtag('consent','update',{analytics_storage:'granted'})` e o evento `consent_update`. Os sinais de anúncio ficam sempre negados.
+- A escolha fica no `localStorage` e é reaplicada no `<head>` a cada visita, antes do GTM carregar. O link **"Preferências de privacidade"** no rodapé reabre o banner, e recusar depois de aceitar apaga os cookies `_ga`.
+- [Política de privacidade](site/privacidade.html) curta, com base legal (LGPD, consentimento), cookies, compartilhamento e retenção.
+- Os testes garantem que toda página HTML tem o consentimento antes do GTM, o `<noscript>` logo após o `<body>` e o acesso às preferências.
 
 ## Como rodar
 
@@ -126,11 +135,12 @@ python -m tracking.gerar --verificar # só confere se estão atualizados
 python -m pytest
 ```
 
-São 82 testes:
+São 94 testes:
 
 - **regras de leitura:** com rótulos reais das planilhas do INEP;
 - **contrato dos JSONs:** cerca de 5.570 municípios, códigos de 7 dígitos, sem duplicatas, taxas entre 0 e 100, somas ≈ 100, IDEB coerente;
-- **contrato de eventos:** limites do GA4, inconsistências rejeitadas e documentação atualizada.
+- **contrato de eventos:** limites do GA4, inconsistências rejeitadas e documentação atualizada;
+- **páginas HTML:** Consent Mode antes do GTM, `<noscript>`, banner, preferências e caminhos relativos.
 
 ### 6. Ver o site localmente
 
@@ -159,8 +169,9 @@ O workflow [`.github/workflows/pages.yml`](.github/workflows/pages.yml) publica 
 
 ## Próximos passos
 
-- [ ] **GTM + GA4:** contêiner com tags para os 8 eventos, dimensões personalizadas registradas e `share` como evento-chave, validados no Tag Assistant e na DebugView.
-- [ ] **Consent Mode v2 e LGPD:** banner com "Aceitar" e "Recusar" de mesmo destaque, os quatro sinais em `denied` por padrão e uma página de privacidade.
+- [x] **GTM instalado** (`GTM-K8NTDB7L`) em todas as páginas.
+- [ ] **Tags do GA4 no GTM:** tags para os 9 eventos (modo básico: só disparam com `analytics_storage` concedido), dimensões personalizadas registradas e `share` como evento-chave, validados no Tag Assistant e na DebugView.
+- [x] **Consent Mode v2 e LGPD:** banner com "Aceitar" e "Recusar" de mesmo destaque, os quatro sinais em `denied` por padrão e uma página de privacidade.
 - [x] **Deploy no GitHub Pages:** `.github/workflows/pages.yml` publica `site/` a cada push na `main`.
 - [ ] **QA automatizado:** Playwright percorrendo jornadas com o GTM bloqueado, validando cada push contra o JSON Schema, no GitHub Actions.
 - [ ] **Reconciliação:** coletor próprio (FastAPI) recebendo os mesmos eventos, para comparar com o GA4 via Data API.

@@ -193,10 +193,33 @@ dialog::backdrop { background: rgb(5 10 20 / 65%); }
 .dialogo__acoes { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; }
 .dialogo__acoes [hidden] { display: none; }
 
+/* Banner de consentimento (fixo no rodapé da tela; Aceitar e Recusar com o mesmo destaque) */
+.consentimento {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+  background: var(--superficie); color: var(--texto);
+  border-top: 1px solid var(--borda); box-shadow: 0 -4px 16px rgb(16 24 40 / 12%);
+  padding: 1rem 1rem calc(1rem + env(safe-area-inset-bottom));
+}
+.consentimento[hidden] { display: none; }
+.consentimento h2 { font-size: 1.05rem; margin-bottom: .35rem; }
+.consentimento p { font-size: .9rem; margin-bottom: .6rem; }
+.consentimento__atual { color: var(--texto-suave); }
+.consentimento__acoes { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; }
+.consentimento__acoes .botao { width: 100%; }
+
+/* Página de texto (política de privacidade) */
+.texto-legal { max-width: 720px; overflow-wrap: anywhere; }
+.texto-legal h2 { font-size: 1.15rem; margin-top: 1.5rem; }
+.texto-legal ul { padding-left: 1.2rem; }
+.texto-legal li { margin-bottom: .4rem; }
+
 /* Rodapé */
 .rodape { max-width: 960px; margin: 0 auto; padding: 1.5rem 1rem 2.5rem; color: var(--texto-suave); font-size: .85rem; border-top: 1px solid var(--borda); }
 
 @media (min-width: 640px) {
+  .consentimento { left: 50%; right: auto; bottom: 1rem; transform: translateX(-50%); width: min(720px, calc(100vw - 2rem));
+    border: 1px solid var(--borda); border-radius: var(--raio); padding: 1rem 1.25rem; }
+  .consentimento__acoes { grid-template-columns: repeat(2, minmax(9rem, auto)); justify-content: start; }
   .filtros { grid-template-columns: 3fr 2fr; }
   .cartoes { grid-template-columns: repeat(3, 1fr); }
   .grafico__area { height: 340px; }

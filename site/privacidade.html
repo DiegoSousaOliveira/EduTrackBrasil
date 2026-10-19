@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Política de privacidade – EduTrackBrasil</title>
+  <meta name="description" content="Como o EduTrackBrasil usa cookies de análise, quais dados coleta e como mudar sua escolha.">
+  <meta name="theme-color" content="#0f5e9c">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230f5e9c'/%3E%3Cpath d='M7 22l6-7 5 4 7-9' stroke='white' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/style.css">
+
+  <!-- 1) dataLayer + Consent Mode v2: tudo negado por padrão, ANTES do GTM e de forma síncrona -->
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('consent','default',{ad_storage:'denied',analytics_storage:'denied',ad_user_data:'denied',ad_personalization:'denied',wait_for_update:500});
+    // Reaplica a escolha salva no banner (js/consentimento.js). Anúncios ficam sempre negados.
+    try {
+      var escolha = JSON.parse(localStorage.getItem('edutrack_consentimento'));
+      if (escolha && escolha.versao === 1 && escolha.analytics_storage === 'granted') {
+        gtag('consent','update',{analytics_storage:'granted'});
+      }
+    } catch (e) {}
+  </script>
+  <!-- 2) Google Tag Manager -->
+  <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+  new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+  j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+  'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+  })(window,document,'script','dataLayer','GTM-K8NTDB7L');</script>
+  <!-- End Google Tag Manager -->
+</head>
+<body>
+  <!-- Google Tag Manager (noscript) -->
+  <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-K8NTDB7L"
+  height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+  <!-- End Google Tag Manager (noscript) -->
+  <a class="pular" href="#conteudo">Pular para o conteúdo</a>
+
+  <header class="topo">
+    <div class="topo__inner">
+      <a class="marca" href="./" aria-label="EduTrackBrasil, página inicial">
+        <svg aria-hidden="true" viewBox="0 0 32 32" width="28" height="28"><rect width="32" height="32" rx="7" fill="currentColor"/><path d="M7 22l6-7 5 4 7-9" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>EduTrack<strong>Brasil</strong></span>
+      </a>
+    </div>
+  </header>
+
+  <main id="conteudo" class="texto-legal">
+    <h1>Política de privacidade</h1>
+    <p class="sub">Última atualização: 19 de outubro de 2026</p>
+
+    <h2>Quem é o responsável</h2>
+    <p>O EduTrackBrasil é um projeto pessoal e independente de Diego Sousa Oliveira, sem vínculo com o INEP ou o MEC.
+      Para dúvidas ou pedidos sobre seus dados, abra uma
+      <a href="https://github.com/DiegoSousaOliveira/EduTrackBrasil/issues" rel="noopener">issue no repositório do projeto no GitHub</a>.</p>
+
+    <h2>O que coletamos e para quê</h2>
+    <p>Os indicadores educacionais mostrados no site são dados públicos do INEP e não envolvem dados pessoais.</p>
+    <p><strong>Só se você aceitar</strong> os cookies de análise, usamos o Google Analytics 4 (via Google Tag Manager)
+      para entender como o site é usado e melhorá-lo. Ele registra:</p>
+    <ul>
+      <li>páginas visitadas e ações no site: buscas (o texto digitado, sem acentos), município escolhido, gráficos vistos,
+        filtros usados e compartilhamento do cartão;</li>
+      <li>informações técnicas: tipo de dispositivo, navegador, região aproximada e de onde você veio.</li>
+    </ul>
+    <p>Não usamos publicidade, não vendemos dados e não cruzamos essas informações para identificar você.
+      Por favor, não digite dados pessoais (nome, CPF, telefone) no campo de busca.</p>
+
+    <h2>Base legal</h2>
+    <p>Consentimento (Lei Geral de Proteção de Dados, art. 7º, I). Sem a sua aceitação, os cookies de análise não são
+      gravados e o site funciona do mesmo jeito.</p>
+
+    <h2>Cookies e armazenamento no seu navegador</h2>
+    <ul>
+      <li><code>_ga</code> e <code>_ga_*</code> (Google Analytics): só com consentimento; distinguem visitas e duram até 2 anos.</li>
+      <li><code>edutrack_consentimento</code> (armazenamento local): guarda a sua escolha no banner para não perguntar a cada visita.</li>
+    </ul>
+
+    <h2>Com quem os dados são compartilhados</h2>
+    <ul>
+      <li><strong>Google</strong> (Google Analytics e Tag Manager), que processa os dados de uso, inclusive fora do Brasil.</li>
+      <li><strong>GitHub Pages</strong> (hospedagem) e <strong>jsDelivr</strong> (biblioteca de gráficos), que podem registrar
+        dados técnicos de acesso, como o endereço IP, conforme as políticas de cada um.</li>
+    </ul>
+
+    <h2>Por quanto tempo</h2>
+    <p>Os dados de eventos ficam no Google Analytics pelo prazo de retenção configurado na propriedade (2 meses) e depois
+      são apagados automaticamente. Relatórios agregados, sem identificação de pessoas, podem ser mantidos.</p>
+
+    <h2>Seus direitos e como mudar sua escolha</h2>
+    <p>Você pode aceitar ou recusar a qualquer momento em
+      <a href="#" data-abrir-consentimento>Preferências de privacidade</a> (também no rodapé de todas as páginas).
+      Ao recusar, os cookies do Google Analytics gravados neste site são apagados. Você também pode pedir informações,
+      correção ou exclusão de dados, conforme o art. 18 da LGPD, pelo canal indicado acima.</p>
+
+    <p><a class="botao" href="./">Voltar ao EduTrackBrasil</a></p>
+  </main>
+
+  <footer class="rodape">
+    <p>EduTrackBrasil é um projeto independente, sem vínculo com o INEP ou o MEC.</p>
+    <p class="rodape__links"><a href="privacidade.html">Política de privacidade</a> ·
+      <a href="#" data-abrir-consentimento>Preferências de privacidade</a></p>
+  </footer>
+
+  <script type="module" src="js/consentimento.js"></script>
+</body>
+</html>

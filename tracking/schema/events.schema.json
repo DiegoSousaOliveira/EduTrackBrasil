@@ -13,7 +13,8 @@
     { "$ref": "#/$defs/evento_compare_toggle" },
     { "$ref": "#/$defs/evento_generate_card" },
     { "$ref": "#/$defs/evento_share" },
-    { "$ref": "#/$defs/evento_data_unavailable" }
+    { "$ref": "#/$defs/evento_data_unavailable" },
+    { "$ref": "#/$defs/evento_consent_update" }
   ],
   "$defs": {
     "event_id": {
@@ -131,6 +132,14 @@
       "enum": ["nao_divulgado", "sem_registro", "sem_dados"],
       "examples": ["nao_divulgado"],
       "x-dimensao-ga4": true
+    },
+    "analytics_storage": {
+      "type": "string",
+      "description": "Escolha da pessoa no banner de cookies para o armazenamento de análise (Consent Mode v2). Os sinais de anúncio ficam sempre 'denied'.",
+      "enum": ["granted", "denied"],
+      "examples": ["granted"],
+      "x-dimensao-ga4": false,
+      "x-observacao": "Com o Consent Mode básico, o GA4 só recebe o consent_update 'granted' (sem consentimento as tags não disparam). A taxa de recusa real virá do coletor próprio (fase de reconciliação)."
     },
 
     "evento_search": {
@@ -289,6 +298,24 @@
       },
       "examples": [
         { "event": "data_unavailable", "event_id": "1c5e7a3f-8d2b-4f9c-b6e0-4a2d8f1c3e95", "schema_version": "1.0.0", "indicador": "ideb", "etapa": "ef_ai", "motivo": "nao_divulgado" }
+      ]
+    },
+    "evento_consent_update": {
+      "title": "consent_update",
+      "description": "A pessoa fez (ou mudou) a escolha no banner de cookies.",
+      "x-tipo": "personalizado",
+      "x-gatilho": "Clique em 'Aceitar' ou 'Recusar' no banner (na primeira visita ou ao reabrir por 'Preferências de privacidade'). Vem logo depois do comando gtag('consent','update',...). Reaplicar a escolha salva ao carregar a página NÃO dispara o evento.",
+      "type": "object",
+      "required": ["event", "event_id", "schema_version", "analytics_storage"],
+      "additionalProperties": false,
+      "properties": {
+        "event": { "const": "consent_update" },
+        "event_id": { "$ref": "#/$defs/event_id" },
+        "schema_version": { "$ref": "#/$defs/schema_version" },
+        "analytics_storage": { "$ref": "#/$defs/analytics_storage" }
+      },
+      "examples": [
+        { "event": "consent_update", "event_id": "b8e4c2a6-3f1d-4a7b-9c5e-2d8f6a1b4c39", "schema_version": "1.0.0", "analytics_storage": "granted" }
       ]
     }
   }
